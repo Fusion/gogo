@@ -1,13 +1,14 @@
+
 ## gogo
 
 ### What does it do?
 
+<img align="left" width="128" height="128" src="assets/gogologo_medallion.png">
 Here is why I wrote this tool: I love the idea of being able to roll out my favorite shell tools locally anywhere I need to.
-
 This means I am a fan of self-sufficient tools, such as lazygit and others. No library dependencies, and as OS-independent as possible.
-
 So, please **do not call this tool a package manager** as that is a non-goal.
 
+<br clear="all">
 All it does is, provided a minimal list of hints, it will download and install whatever commands I need:
 - as long as there are no dependencies
 - as long as they are available as packages on github

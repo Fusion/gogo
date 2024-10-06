@@ -1,0 +1,24 @@
+[[repositories]]
+name = "isacikgoz/tldr"
+file = "tldr"
+comment = "quick help for any command"
+
+[[repositories]]
+name = "jorgerojas26/lazysql"
+file = "lazysql"
+comment = "fast sql TUI"
+
+[[repositories]]
+name = "jesseduffield/lazygit"
+file = "lazygit"
+comment = "fast git TUI"
+
+[[repositories]]
+name = "pete911/certinfo"
+file = "certinfo"
+comment = "display certificate chains"
+
+[[repositories]]
+name = "schollz/croc"
+file = "croc"
+comment = "transfer files and folders"

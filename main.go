@@ -1,6 +1,9 @@
 package main
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -51,15 +54,25 @@ const (
 	RepoExist
 )
 
+type EAssetFormat int
+
+const (
+	BinaryFormat EAssetFormat = iota
+	TarballFormat
+	TargzipFormat
+	ZipFormat
+)
+
 type RepoStatus struct {
 	Repo   *Repository
 	Status ERepoStatus
+	Format EAssetFormat
 	Asset  string
 	Url    string
 }
 
 var (
-	VERSION = "0.0.1"
+	VERSION = "0.0.2"
 
 	ArchEquiv = map[string][]string{
 		"amd64": {"amd64", "x86_64"},
@@ -232,6 +245,7 @@ func fetch(configPath string, update bool, command *string) {
 					repoStatus.Status = RepoOK
 					repoStatus.Asset = asset.Name
 					repoStatus.Url = asset.BrowserDownloadURL
+					repoStatus.Format = getAssetFormat(asset.Name)
 					break finderloop
 				}
 			}
@@ -258,7 +272,7 @@ func fetch(configPath string, update bool, command *string) {
 			fmt.Printf("  %s %s\n", repoStatus.Repo.Name, warningStyle.Render("[Ignored]"))
 			continue
 		}
-		if err := downloadFile(repoStatus.Url, filepath.Join(config.Paths.TargetDir, repoStatus.Repo.File)); err != nil {
+		if err := downloadFile(repoStatus.Url, repoStatus.Format, repoStatus.Repo.File, filepath.Join(config.Paths.TargetDir, repoStatus.Repo.File)); err != nil {
 			fmt.Printf("    %s: %s\n", repoStatus.Repo.File, errorStyle.Render(fmt.Sprintf("[%s]", err.Error())))
 			break
 		}
@@ -298,6 +312,22 @@ func readConfig(configPath string) (Config, error) {
 	}
 
 	return config, nil
+}
+
+func getAssetFormat(assetName string) EAssetFormat {
+	if strings.HasSuffix(assetName, ".tar.gz") {
+		return TargzipFormat
+	}
+	if strings.HasSuffix(assetName, ".tgz") {
+		return TargzipFormat
+	}
+	if strings.HasSuffix(assetName, ".tar") {
+		return TarballFormat
+	}
+	if strings.HasSuffix(assetName, ".zip") {
+		return ZipFormat
+	}
+	return BinaryFormat
 }
 
 func expandPath(path string) (string, error) {
@@ -348,7 +378,7 @@ func existFile(fileName string) bool {
 	return true
 }
 
-func downloadFile(url, fileName string) error {
+func downloadFile(url string, assetFormat EAssetFormat, fileName string, filePath string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -359,17 +389,146 @@ func downloadFile(url, fileName string) error {
 		return fmt.Errorf("non-OK HTTP status: %s", resp.Status)
 	}
 
-	out, err := os.Create(fileName)
+	switch assetFormat {
+	case TarballFormat:
+		return writeTarballFile(fileName, filePath, resp.Body)
+	case TargzipFormat:
+		return writeTargzipFile(fileName, filePath, resp.Body)
+	case ZipFormat:
+		return writeZipFile(fileName, filePath, resp.Body)
+	case BinaryFormat:
+		return writeBinaryFile(filePath, resp.Body)
+	}
+	return nil
+}
+
+func writeTarballFile(fileName string, filePath string, content io.Reader) error {
+	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
+	if err != nil {
+		return fmt.Errorf("error creating temp file: %v", err)
+	}
+	tmpFileName := filepath.Join(tmpPath, "asset.tar")
+	if err := writeBinaryFile(tmpFileName, content); err != nil {
+		return err
+	}
+	file, err := os.Open(tmpFileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	tarReader := tar.NewReader(file)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if header.Name != fileName {
+			continue
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if err := writeBinaryFile(filePath, tarReader); err != nil {
+			return err
+		}
+		break
+	}
+	return nil
+}
+
+func writeTargzipFile(fileName string, filePath string, content io.Reader) error {
+	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
+	if err != nil {
+		return fmt.Errorf("error creating temp file: %v", err)
+	}
+	tmpFileName := filepath.Join(tmpPath, "asset.tar.gz")
+	if err := writeBinaryFile(tmpFileName, content); err != nil {
+		return err
+	}
+	file, err := os.Open(tmpFileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if header.Name != fileName {
+			continue
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if err := writeBinaryFile(filePath, tarReader); err != nil {
+			return err
+		}
+		break
+	}
+	return nil
+}
+
+func writeZipFile(fileName string, filePath string, content io.Reader) error {
+	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
+	if err != nil {
+		return fmt.Errorf("error creating temp file: %v", err)
+	}
+	tmpFileName := filepath.Join(tmpPath, "asset.zip")
+	if err := writeBinaryFile(tmpFileName, content); err != nil {
+		return err
+	}
+	file, err := os.Open(tmpFileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	zipReader, err := zip.OpenReader(tmpFileName)
+	if err != nil {
+		return err
+	}
+	defer zipReader.Close()
+	for _, file := range zipReader.File {
+		if file.Name != fileName {
+			continue
+		}
+		zipFile, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer zipFile.Close()
+		if err := writeBinaryFile(filePath, zipFile); err != nil {
+			return err
+		}
+		break
+	}
+	return nil
+}
+
+func writeBinaryFile(filePath string, content io.Reader) error {
+	out, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	if _, err = io.Copy(out, resp.Body); err != nil {
+	if _, err = io.Copy(out, content); err != nil {
 		return err
 	}
 
-	if err = os.Chmod(fileName, 0o755); err != nil {
+	if err = os.Chmod(filePath, 0o755); err != nil {
 		return err
 	}
 

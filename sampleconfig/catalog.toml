@@ -22,3 +22,8 @@ comment = "display certificate chains"
 name = "schollz/croc"
 file = "croc"
 comment = "transfer files and folders"
+
+[[repositories]]
+name = "chriswalz/bit"
+file = "bit"
+comment = "a modern git cli"

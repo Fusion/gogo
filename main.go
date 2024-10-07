@@ -75,8 +75,8 @@ var (
 	VERSION = "0.0.2"
 
 	ArchEquiv = map[string][]string{
-		"amd64": {"amd64", "x86_64"},
-		"arm64": {"arm64", "amd64", "x86_64"},
+		"amd64": {"amd64", "x86_64", ""},
+		"arm64": {"arm64", "amd64", "x86_64", ""},
 	}
 	OSEquiv = map[string][]string{
 		"darwin": {"darwin", "macos"},
@@ -276,7 +276,7 @@ func fetch(configPath string, update bool, command *string) {
 			fmt.Printf("    %s: %s\n", repoStatus.Repo.File, errorStyle.Render(fmt.Sprintf("[%s]", err.Error())))
 			break
 		}
-		fmt.Printf("    %s %s\n", repoStatus.Repo.File, okStyle.Render("[Fetched]"))
+		fmt.Printf("    %s %s\n", repoStatus.Repo.Name, okStyle.Render("[Fetched]"))
 	}
 }
 
@@ -296,11 +296,12 @@ func readConfig(configPath string) (Config, error) {
 			if entry.IsDir() {
 				continue
 			}
+			fmt.Printf("Config merging %s\n", entry.Name())
 			oneConfig, err := readOneConfig(filepath.Join(configPath, entry.Name()))
 			if err != nil {
 				return config, err
 			}
-			if err := mergo.Merge(&config, oneConfig); err != nil {
+			if err := mergo.Merge(&config, oneConfig, mergo.WithAppendSlice); err != nil {
 				return config, err
 			}
 		}
@@ -425,7 +426,7 @@ func writeTarballFile(fileName string, filePath string, content io.Reader) error
 		if err != nil {
 			return err
 		}
-		if header.Name != fileName {
+		if filepath.Base(header.Name) != fileName {
 			continue
 		}
 		if header.Typeflag != tar.TypeReg {
@@ -467,7 +468,7 @@ func writeTargzipFile(fileName string, filePath string, content io.Reader) error
 		if err != nil {
 			return err
 		}
-		if header.Name != fileName {
+		if filepath.Base(header.Name) != fileName {
 			continue
 		}
 		if header.Typeflag != tar.TypeReg {
@@ -501,7 +502,7 @@ func writeZipFile(fileName string, filePath string, content io.Reader) error {
 	}
 	defer zipReader.Close()
 	for _, file := range zipReader.File {
-		if file.Name != fileName {
+		if filepath.Base(file.Name) != fileName {
 			continue
 		}
 		zipFile, err := file.Open()

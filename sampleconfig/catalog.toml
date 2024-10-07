@@ -27,3 +27,13 @@ comment = "transfer files and folders"
 name = "chriswalz/bit"
 file = "bit"
 comment = "a modern git cli"
+
+[[repositories]]
+name = "sachaos/viddy"
+file = "viddy"
+comment = "a modern watch command"
+
+[[repositories]]
+name = "akavel/up"
+file = "up"
+comment = "run command |& up then use grep awk etc"

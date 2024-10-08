@@ -2,38 +2,46 @@
 name = "isacikgoz/tldr"
 file = "tldr"
 comment = "quick help for any command"
+tags = ["help"]
 
 [[repositories]]
 name = "jorgerojas26/lazysql"
 file = "lazysql"
 comment = "fast sql TUI"
+tags = ["databases"]
 
 [[repositories]]
 name = "jesseduffield/lazygit"
 file = "lazygit"
 comment = "fast git TUI"
+tags = ["scm"]
 
 [[repositories]]
 name = "pete911/certinfo"
 file = "certinfo"
 comment = "display certificate chains"
+tags = ["security"]
 
 [[repositories]]
 name = "schollz/croc"
 file = "croc"
 comment = "transfer files and folders"
+tags = ["networking", "sharing"]
 
 [[repositories]]
 name = "chriswalz/bit"
 file = "bit"
 comment = "a modern git cli"
+tags = ["scm"]
 
 [[repositories]]
 name = "sachaos/viddy"
 file = "viddy"
 comment = "a modern watch command"
+tags = ["utils", "shell"]
 
 [[repositories]]
 name = "akavel/up"
 file = "up"
 comment = "run command |& up then use grep awk etc"
+tags = ["utils", "shell"]

@@ -2,58 +2,70 @@
 name = "tulir/gomuks"
 file = "gomuks"
 comment = "a TUI matrix client"
+tags = ["chat", "fediverse"]
 
 [[repositories]]
 name = "yudai/gotty"
 file = "gotty"
 comment = "share terminal as a web application"
+tags = ["sharing"]
 
 [[repositories]]
 name = "humanlogio/humanlog"
 file = "humanlog"
 comment = "logs for humans to read"
+tags = ["util", "devops"]
 
 [[repositories]]
 name = "go-jira/jira"
 file = "jira"
 comment = "jira client for command line"
+tags = ["development"]
 
 [[repositories]]
 name = "six-ddc/plow"
 file = "plow"
 comment = "a high performance http bechmarking tool"
+tags = ["networking", "devops"]
 
 [[repositories]]
 name = "fusion/pngsource"
 file = "pngsource"
 comment = "embed source code in png files"
+tags = ["utils"]
 
 [[repositories]]
 name = "cespare/reflex"
 file = "reflex"
 comment = "run a command when files change"
+tags = ["utils", "shell", "devops"]
 
 [[repositories]]
 name = "getsops/sops"
 file = "sops"
 comment = "flexible tool for managing secrets"
+tags = ["security", "devops"]
 
 [[repositories]]
 name = "itchyny/gojq"
 file = "gojq"
 comment = "pure go implementation of jq"
+tags = ["util", "shell", "data handling"]
 
 [[repositories]]
 name = "noahgorstein/jqp"
 file = "jqp"
 comment = "a TUI playground for jq"
+tags = ["util", "shell", "data handling"]
 
 [[repositories]]
 name = "johnkerl/miller"
 file = "mlr"
 comment = "like awk, sed, cut, join, and sort for CSV, TSV, and JSON"
+tags = ["util", "shell", "data handling"]
 
 [[repositories]]
 name = "antonmedv/fx"
 file = "fx"
 comment = "json and yaml viewer and processor"
+tags = ["util", "shell", "data handling"]

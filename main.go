@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"dario.cat/mergo"
@@ -30,15 +31,22 @@ type Paths struct {
 }
 
 type Repository struct {
-	Name    string `toml:"name"`
-	File    string `toml:"file"`
-	Comment string `toml:"comment"`
+	Name    string   `toml:"name"`
+	File    string   `toml:"file"`
+	Comment string   `toml:"comment"`
+	Tags    []string `toml:"tags"`
 }
+
+type Repositories []Repository
+
+func (p Repositories) Len() int           { return len(p) }
+func (p Repositories) Less(i, j int) bool { return p[i].File < p[j].File }
+func (p Repositories) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Config struct {
 	Auth         Auth         `toml:"auth"`
 	Paths        Paths        `toml:"paths"`
-	Repositories []Repository `toml:"repositories"`
+	Repositories Repositories `toml:"repositories"`
 }
 
 type ReleaseAsset struct {
@@ -91,10 +99,12 @@ func main() {
 		fmt.Printf("gogo v%s (https://github.com/fusion/gogo)\n\n", VERSION)
 		fmt.Printf("Usage: %s <action> [-config <config-file>] [-update]\n\nAvailable actions:\n", os.Args[0])
 		fmt.Println("  list            list available commands")
+		fmt.Println("  tags            display all tags")
 		fmt.Println("  fetch [command] fetch one or all commands")
 		fmt.Println("\nFlags:")
 		fmt.Println("  -config <config-file> path to a configuration file or directory")
 		fmt.Println("  -update               update commands if already installed")
+		fmt.Println("  -tags                 filter by tags")
 		os.Exit(1)
 	}
 	command := os.Args[1]
@@ -102,21 +112,28 @@ func main() {
 
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
 	listConfigPath := listCmd.String("config", "config.toml", "Path to the TOML configuration file")
+	listTags := listCmd.String("tags", "", "Filter by tags")
+	tagsCmd := flag.NewFlagSet("tags", flag.ExitOnError)
+	tagsConfigPath := tagsCmd.String("config", "config.toml", "Path to the TOML configuration file")
 	fetchCmd := flag.NewFlagSet("fetch", flag.ExitOnError)
 	fetchConfigPath := fetchCmd.String("config", "config.toml", "Path to the TOML configuration file")
 	fetchUpdate := fetchCmd.Bool("update", false, "Update commands if already installed")
+	fetchTags := fetchCmd.String("tags", "", "Filter by tags")
 
 	switch command {
 	case "list":
 		listCmd.Parse(args)
-		list(*listConfigPath)
+		doList(*listConfigPath, expandTags(*listTags))
+	case "tags":
+		tagsCmd.Parse(args)
+		doTags(*tagsConfigPath)
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)
-			fetch(*fetchConfigPath, *fetchUpdate, nil)
+			doFetch(*fetchConfigPath, *fetchUpdate, nil, expandTags(*fetchTags))
 		} else {
 			fetchCmd.Parse(args[1:])
-			fetch(*fetchConfigPath, *fetchUpdate, &args[0])
+			doFetch(*fetchConfigPath, *fetchUpdate, &args[0], expandTags(*fetchTags))
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
@@ -124,7 +141,14 @@ func main() {
 	}
 }
 
-func list(configPath string) {
+func expandTags(tags string) []string {
+	if tags == "" {
+		return []string{}
+	}
+	return strings.Split(tags, ",")
+}
+
+func doList(configPath string, tags []string) {
 	config, err := readConfig(configPath)
 	if err != nil {
 		fmt.Printf("Error reading config: %v\n", err)
@@ -144,15 +168,68 @@ func list(configPath string) {
 			},
 		).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("99")))
-	t.Headers("Binary", "Description")
+	t.Headers("Binary", "Description", "Tags")
 
 	for _, repo := range config.Repositories {
-		t.Row(repo.File, repo.Comment)
+		if len(tags) > 0 && !containsTag(repo.Tags, tags) {
+			continue
+		}
+		t.Row(repo.File, repo.Comment, strings.Join(repo.Tags, ", "))
 	}
 	fmt.Println(t)
 }
 
-func fetch(configPath string, update bool, command *string) {
+func doTags(configPath string) {
+	config, err := readConfig(configPath)
+	if err != nil {
+		fmt.Printf("Error reading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	tagSet := make(map[string]int)
+	for _, repo := range config.Repositories {
+		for _, tag := range repo.Tags {
+			if _, ok := tagSet[tag]; !ok {
+				tagSet[tag] = 0
+			}
+			tagSet[tag] += 1
+		}
+	}
+
+	type tagcnt struct {
+		Tag string
+		Cnt int
+	}
+	var tagSlice []tagcnt
+	for tag, cnt := range tagSet {
+		tagSlice = append(tagSlice, tagcnt{Tag: tag, Cnt: cnt})
+	}
+	sort.Slice(tagSlice, func(i, j int) bool {
+		return tagSlice[i].Tag < tagSlice[j].Tag
+	})
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		StyleFunc(
+			func(_, col int) lipgloss.Style {
+				switch col {
+				case 1:
+					return lipgloss.NewStyle().Padding(0, 1).Align(lipgloss.Right)
+				default:
+					return lipgloss.NewStyle().Padding(0, 1)
+				}
+			},
+		).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("99")))
+	t.Headers("Tag", "Repos")
+
+	for _, tc := range tagSlice {
+		t.Row(tc.Tag, fmt.Sprintf("%d", tc.Cnt))
+	}
+	fmt.Println(t)
+}
+
+func doFetch(configPath string, update bool, command *string, tags []string) {
 	hostArch := strings.ToLower(runtime.GOARCH)
 	hostOS := strings.ToLower(runtime.GOOS)
 
@@ -181,6 +258,9 @@ func fetch(configPath string, update bool, command *string) {
 	fmt.Printf("[Preflight]\n")
 	for _, repo := range config.Repositories {
 		if command != nil && *command != repo.File {
+			continue
+		}
+		if len(tags) > 0 && !containsTag(repo.Tags, tags) {
 			continue
 		}
 		repoStatus := RepoStatus{Repo: &repo, Status: RepoKO}
@@ -280,6 +360,17 @@ func fetch(configPath string, update bool, command *string) {
 	}
 }
 
+func containsTag(repoTags []string, tags []string) bool {
+	for _, tag := range tags {
+		for _, repoTag := range repoTags {
+			if tag == repoTag {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func readConfig(configPath string) (Config, error) {
 	var config Config
 	fileInfo, err := os.Stat(configPath)
@@ -311,6 +402,7 @@ func readConfig(configPath string) (Config, error) {
 			return config, err
 		}
 	}
+	sort.Sort(Repositories(config.Repositories))
 
 	return config, nil
 }

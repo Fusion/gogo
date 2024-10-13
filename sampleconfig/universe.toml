@@ -41,12 +41,6 @@ comment = "run a command when files change"
 tags = ["utils", "shell", "devops"]
 
 [[repositories]]
-name = "getsops/sops"
-file = "sops"
-comment = "flexible tool for managing secrets"
-tags = ["security", "devops"]
-
-[[repositories]]
 name = "itchyny/gojq"
 file = "gojq"
 comment = "pure go implementation of jq"

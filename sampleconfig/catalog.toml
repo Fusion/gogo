@@ -17,12 +17,6 @@ comment = "fast git TUI"
 tags = ["scm"]
 
 [[repositories]]
-name = "pete911/certinfo"
-file = "certinfo"
-comment = "display certificate chains"
-tags = ["security"]
-
-[[repositories]]
 name = "schollz/croc"
 file = "croc"
 comment = "transfer files and folders"

@@ -1,0 +1,18 @@
+[[repositories]]
+name = "pete911/certinfo"
+file = "certinfo"
+comment = "display certificate chains"
+tags = ["security"]
+
+[[repositories]]
+name = "getsops/sops"
+file = "sops"
+comment = "flexible tool for managing secrets"
+tags = ["security", "devops"]
+
+[[repositories]]
+name = "FiloSottile/age"
+file = "age"
+comment = "better encryption than pgp"
+tags = ["security", "devops"]
+

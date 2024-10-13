@@ -13,6 +13,7 @@ tags = ["security", "devops"]
 [[repositories]]
 name = "FiloSottile/age"
 file = "age"
+utils = ["age-keygen"]
 comment = "better encryption than pgp"
 tags = ["security", "devops"]
 

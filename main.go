@@ -33,6 +33,7 @@ type Paths struct {
 type Repository struct {
 	Name    string   `toml:"name"`
 	File    string   `toml:"file"`
+	Utils   []string `toml:"utils"`
 	Comment string   `toml:"comment"`
 	Tags    []string `toml:"tags"`
 }
@@ -352,11 +353,11 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 			fmt.Printf("  %s %s\n", repoStatus.Repo.Name, warningStyle.Render("[Ignored]"))
 			continue
 		}
-		if err := downloadFile(repoStatus.Url, repoStatus.Format, repoStatus.Repo.File, filepath.Join(config.Paths.TargetDir, repoStatus.Repo.File)); err != nil {
-			fmt.Printf("    %s: %s\n", repoStatus.Repo.File, errorStyle.Render(fmt.Sprintf("[%s]", err.Error())))
+		if err := downloadFile(repoStatus.Url, repoStatus.Format, repoStatus.Repo.File, repoStatus.Repo.Utils, config.Paths.TargetDir); err != nil {
+			fmt.Printf("  %s: %s\n", repoStatus.Repo.File, errorStyle.Render(fmt.Sprintf("[%s]", err.Error())))
 			break
 		}
-		fmt.Printf("    %s %s\n", repoStatus.Repo.Name, okStyle.Render("[Fetched]"))
+		fmt.Printf("  %s %s\n", repoStatus.Repo.Name, okStyle.Render("[Fetched]"))
 	}
 }
 
@@ -471,7 +472,7 @@ func existFile(fileName string) bool {
 	return true
 }
 
-func downloadFile(url string, assetFormat EAssetFormat, fileName string, filePath string) error {
+func downloadFile(url string, assetFormat EAssetFormat, fileName string, utils []string, targetDir string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -484,18 +485,19 @@ func downloadFile(url string, assetFormat EAssetFormat, fileName string, filePat
 
 	switch assetFormat {
 	case TarballFormat:
-		return writeTarballFile(fileName, filePath, resp.Body)
+		return writeTarballFile(fileName, utils, targetDir, resp.Body)
 	case TargzipFormat:
-		return writeTargzipFile(fileName, filePath, resp.Body)
+		return writeTargzipFile(fileName, utils, targetDir, resp.Body)
 	case ZipFormat:
-		return writeZipFile(fileName, filePath, resp.Body)
+		return writeZipFile(fileName, utils, targetDir, resp.Body)
 	case BinaryFormat:
+		filePath := filepath.Join(targetDir, fileName)
 		return writeBinaryFile(filePath, resp.Body)
 	}
 	return nil
 }
 
-func writeTarballFile(fileName string, filePath string, content io.Reader) error {
+func writeTarballFile(fileName string, utils []string, targetDir string, content io.Reader) error {
 	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
 	if err != nil {
 		return fmt.Errorf("error creating temp file: %v", err)
@@ -518,21 +520,35 @@ func writeTarballFile(fileName string, filePath string, content io.Reader) error
 		if err != nil {
 			return err
 		}
-		if filepath.Base(header.Name) != fileName {
-			continue
-		}
 		if header.Typeflag != tar.TypeReg {
 			continue
 		}
+		var proceed *string
+		if filepath.Base(header.Name) == fileName {
+			proceed = &fileName
+		} else {
+			for _, util := range utils {
+				if filepath.Base(header.Name) == util {
+					proceed = &util
+					break
+				}
+			}
+		}
+		if proceed == nil {
+			continue
+		}
+		filePath := filepath.Join(targetDir, *proceed)
 		if err := writeBinaryFile(filePath, tarReader); err != nil {
 			return err
 		}
-		break
+		if len(utils) == 0 {
+			break
+		}
 	}
 	return nil
 }
 
-func writeTargzipFile(fileName string, filePath string, content io.Reader) error {
+func writeTargzipFile(fileName string, utils []string, targetDir string, content io.Reader) error {
 	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
 	if err != nil {
 		return fmt.Errorf("error creating temp file: %v", err)
@@ -560,21 +576,35 @@ func writeTargzipFile(fileName string, filePath string, content io.Reader) error
 		if err != nil {
 			return err
 		}
-		if filepath.Base(header.Name) != fileName {
-			continue
-		}
 		if header.Typeflag != tar.TypeReg {
 			continue
 		}
+		var proceed *string
+		if filepath.Base(header.Name) == fileName {
+			proceed = &fileName
+		} else {
+			for _, util := range utils {
+				if filepath.Base(header.Name) == util {
+					proceed = &util
+					break
+				}
+			}
+		}
+		if proceed == nil {
+			continue
+		}
+		filePath := filepath.Join(targetDir, *proceed)
 		if err := writeBinaryFile(filePath, tarReader); err != nil {
 			return err
 		}
-		break
+		if len(utils) == 0 {
+			break
+		}
 	}
 	return nil
 }
 
-func writeZipFile(fileName string, filePath string, content io.Reader) error {
+func writeZipFile(fileName string, utils []string, targetDir string, content io.Reader) error {
 	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
 	if err != nil {
 		return fmt.Errorf("error creating temp file: %v", err)
@@ -594,7 +624,18 @@ func writeZipFile(fileName string, filePath string, content io.Reader) error {
 	}
 	defer zipReader.Close()
 	for _, file := range zipReader.File {
-		if filepath.Base(file.Name) != fileName {
+		var proceed *string
+		if filepath.Base(file.Name) == fileName {
+			proceed = &fileName
+		} else {
+			for _, util := range utils {
+				if filepath.Base(file.Name) == util {
+					proceed = &util
+					break
+				}
+			}
+		}
+		if proceed == nil {
 			continue
 		}
 		zipFile, err := file.Open()
@@ -602,10 +643,13 @@ func writeZipFile(fileName string, filePath string, content io.Reader) error {
 			return err
 		}
 		defer zipFile.Close()
+		filePath := filepath.Join(targetDir, *proceed)
 		if err := writeBinaryFile(filePath, zipFile); err != nil {
 			return err
 		}
-		break
+		if len(utils) == 0 {
+			break
+		}
 	}
 	return nil
 }

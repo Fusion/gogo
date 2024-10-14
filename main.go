@@ -81,7 +81,7 @@ type RepoStatus struct {
 }
 
 var (
-	VERSION = "0.0.2"
+	VERSION = "0.0.4"
 
 	ArchEquiv = map[string][]string{
 		"amd64": {"amd64", "x86_64", ""},
@@ -102,6 +102,8 @@ func main() {
 		fmt.Println("  list            list available commands")
 		fmt.Println("  tags            display all tags")
 		fmt.Println("  fetch [command] fetch one or all commands")
+		fmt.Println("  fetch [repo]    fetch command from repository")
+		fmt.Println("                  (can be author/repo or full GitHub URL)")
 		fmt.Println("\nFlags:")
 		fmt.Println("  -config <config-file> path to a configuration file or directory")
 		fmt.Println("  -update               update commands if already installed")
@@ -254,10 +256,32 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 		os.Exit(1)
 	}
 
+	var checkedRepos *Repositories
+
+	var bits []string
+	if command != nil {
+		bits = strings.Split(*command, "/")
+	}
+	if len(bits) > 1 {
+		// This is a repo
+		var directRepo Repository
+		if bits[0] == "https:" {
+			directRepo.Name = strings.Join(bits[3:5], "/")
+			directRepo.File = bits[4]
+		} else {
+			directRepo.Name = strings.Join(bits[0:2], "/")
+			directRepo.File = bits[1]
+		}
+		*command = directRepo.File
+		checkedRepos = &Repositories{directRepo}
+	} else {
+		checkedRepos = &config.Repositories
+	}
+
 	repoStatusList := []RepoStatus{}
 
 	fmt.Printf("[Preflight]\n")
-	for _, repo := range config.Repositories {
+	for _, repo := range *checkedRepos {
 		if command != nil && *command != repo.File {
 			continue
 		}

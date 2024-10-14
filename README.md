@@ -69,3 +69,14 @@ Store your token in the configuration file/directory:
 token = "github_<xxxxxxxxxx>"
 ```
 
+### Development
+
+#### Releasing
+
+```
+git tag v<semantic-tag>
+git push --tags
+gh release create v<semantic-tag>
+gh release upload v<semantic-tag> gogo-darwin-arm64 gogo-linux-amd64
+gh release edit v<semantic-tag> --draft=false --latest
+```

@@ -338,6 +338,10 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 	finderloop:
 		for _, asset := range release.Assets {
 			assetName := strings.ToLower(asset.Name)
+			if strings.Contains(assetName, ".sha") {
+				// following a common convention, we ignore SHA files
+				continue
+			}
 			for _, arch := range archList {
 				if !strings.Contains(assetName, arch) {
 					continue

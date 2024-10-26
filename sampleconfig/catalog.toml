@@ -39,3 +39,39 @@ name = "akavel/up"
 file = "up"
 comment = "run command |& up then use grep awk etc"
 tags = ["utils", "shell"]
+
+[[repositories]]
+name = "sharkdp/fd"
+file = "fd"
+comment = "a simple, fast and user-friendly alternative to 'find'"
+tags = ["utils", "shell"]
+
+[[repositories]]
+name = "lsd-rs/lsd"
+file = "lsd"
+comment = "next gen ls command"
+tags = ["utils", "shell"]
+
+[[repositories]]
+name = "sharkdp/bat"
+file = "bat"
+comment = "improved cat"
+tags = ["utils", "shell"]
+
+[[repositories]]
+name = "junegunn/fzf"
+file = "fzf"
+comment = "command-line fuzzy finder"
+tags = ["utils", "shell"]
+
+[[repositories]]
+name = "BurntSushi/ripgrep"
+file = "rg"
+comment = "much improved grep"
+tags = ["utils", "shell"]
+
+[[repositories]]
+name = "Wilfred/difftastic"
+file = "difft"
+comment = "structural diff that understands syntax"
+tags = ["development", "shell"]

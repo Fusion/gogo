@@ -41,6 +41,12 @@ comment = "run a command when files change"
 tags = ["utils", "shell", "devops"]
 
 [[repositories]]
+name = "jqlang/jq"
+file = "jq"
+comment = "command-line JSON processor"
+tags = ["util", "shell", "data handling"]
+
+[[repositories]]
 name = "itchyny/gojq"
 file = "gojq"
 comment = "pure go implementation of jq"
@@ -63,3 +69,75 @@ name = "antonmedv/fx"
 file = "fx"
 comment = "json and yaml viewer and processor"
 tags = ["util", "shell", "data handling"]
+
+[[repositories]]
+name = "gohugoio/hugo"
+file = "hugo"
+comment = "static site generator"
+tags = ["web"]
+
+[[repositories]]
+name = "syncthing/syncthing"
+file = "syncthing"
+comment = "continuous file synchronization"
+tags = ["networking"]
+
+[[repositories]]
+name = "kubernetes/minikube"
+file = "minikube"
+comment = "local Kubernetes cluster"
+tags = ["devops"]
+
+[[repositories]]
+name = "ogham/dog"
+file = "dog"
+comment = "command-line DNS client"
+tags = ["devops"]
+
+[[repositories]]
+name = "chmln/sd"
+file = "sd"
+comment = "find & replace CLI"
+tags = ["shell"]
+
+[[repositories]]
+name = "denisidoro/navi"
+file = "navi"
+comment = "interactive cheatsheet tool for the command-line"
+tags = ["shell", "help"]
+
+[[repositories]]
+name = "pemistahl/grex"
+file = "grex"
+comment = "regex commonality builder"
+tags = ["shell", "help"]
+
+[[repositories]]
+name = "zellij-org/zellij"
+file = "zellij"
+comment = "terminal workspace with batteries included"
+tags = ["shell"]
+
+[[repositories]]
+name = "sayanarijit/xplr"
+file = "xplr"
+comment = "hackable, minimal, fast TUI file explorer"
+tags = ["shell"]
+
+[[repositories]]
+name = "orf/gping"
+file = "gping"
+comment = "ping with graph and jitter"
+tags = ["shell", "networking"]
+
+[[repositories]]
+name = "bootandy/dust"
+file = "dust"
+comment = "more intuitive version of du in rust"
+tags = ["shell"]
+
+[[repositories]]
+name = "Byron/dua-cli"
+file = "dua"
+comment = "view disk space usage and delete unwanted data (hint: dua i)"
+tags = ["shell"]

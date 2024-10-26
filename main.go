@@ -34,6 +34,7 @@ type Paths struct {
 type Repository struct {
 	Name    string   `toml:"name"`
 	File    string   `toml:"file"`
+	Command string   `toml:"command"`
 	Utils   []string `toml:"utils"`
 	Comment string   `toml:"comment"`
 	Tags    []string `toml:"tags"`
@@ -89,7 +90,7 @@ var (
 		"arm64": {"arm64", "amd64", "x86_64", ""},
 	}
 	OSEquiv = map[string][]string{
-		"darwin": {"darwin", "macos"},
+		"darwin": {"darwin", "macos", "osx"},
 	}
 	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000"))
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00"))
@@ -333,8 +334,14 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 		}
 		repoStatus := RepoStatus{Repo: &repo, Status: RepoKO}
 		if !update {
-			if existFile(filepath.Join(config.Paths.TargetDir, repo.File)) {
-				fmt.Printf("  - ignoring existing command %s\n", repo.File)
+			var checkFile *string
+			if repo.Command != "" {
+				checkFile = &repo.Command
+			} else {
+				checkFile = &repo.File
+			}
+			if existFile(filepath.Join(config.Paths.TargetDir, *checkFile)) {
+				fmt.Printf("  - ignoring existing command %s (%s)\n", repo.File, *checkFile)
 				repoStatus.Status = RepoExist
 				repoStatusList = append(repoStatusList, repoStatus)
 				continue

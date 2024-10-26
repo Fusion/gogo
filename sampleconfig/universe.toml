@@ -153,3 +153,17 @@ name = "ducaale/xh"
 file = "xh"
 comment = "send http requests: xh post myvar=myvalue etc"
 tags = ["shell"]
+
+[[repositories]]
+name = "fatedier/frp"
+file = "frp"
+command = "frps"
+utils = ["frps", "frpc"]
+comment = "reverse proxy to help you expose a local server"
+tags = ["networking"]
+
+[[repositories]]
+name = "rclone/rclone"
+file = "rclone"
+comment = "sync files and directories to and from different cloud storage providers"
+tags = ["networking"]

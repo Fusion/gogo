@@ -80,3 +80,7 @@ gh release create v<semantic-tag>
 gh release upload v<semantic-tag> gogo-darwin-arm64 gogo-linux-amd64
 gh release edit v<semantic-tag> --draft=false --latest
 ```
+
+#### TODO
+
+- Use ldd to determine who's truly standalone

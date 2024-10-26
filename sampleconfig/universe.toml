@@ -141,3 +141,15 @@ name = "Byron/dua-cli"
 file = "dua"
 comment = "view disk space usage and delete unwanted data (hint: dua i)"
 tags = ["shell"]
+
+[[repositories]]
+name = "muesli/duf"
+file = "duf"
+comment = "display disks, mounts, etc with stats"
+tags = ["shell"]
+
+[[repositories]]
+name = "ducaale/xh"
+file = "xh"
+comment = "send http requests: xh post myvar=myvalue etc"
+tags = ["shell"]

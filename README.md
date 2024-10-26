@@ -84,3 +84,4 @@ gh release edit v<semantic-tag> --draft=false --latest
 #### TODO
 
 - Use ldd to determine who's truly standalone
+- Review tags because right now they are pretty weakly picked

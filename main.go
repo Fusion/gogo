@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"compress/gzip"
 	"encoding/json"
 	"flag"
@@ -99,15 +100,20 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Printf("gogo v%s (https://github.com/fusion/gogo)\n\n", VERSION)
 		fmt.Printf("Usage: %s <action> [-config <config-file>] [-update]\n\nAvailable actions:\n", os.Args[0])
-		fmt.Println("  list            list available commands")
-		fmt.Println("  tags            display all tags")
-		fmt.Println("  fetch [command] fetch one or all commands")
-		fmt.Println("  fetch [repo]    fetch command from repository")
-		fmt.Println("                  (can be author/repo or full GitHub URL)")
+		fmt.Println("  list                  list available commands")
+		fmt.Println("  tags                  display all tags")
+		fmt.Println("  fetch <argument>      fetch one or some or all commands")
+		fmt.Println("                        (can be author/repo or full GitHub URL)")
 		fmt.Println("\nFlags:")
 		fmt.Println("  -config <config-file> path to a configuration file or directory")
 		fmt.Println("  -update               update commands if already installed")
 		fmt.Println("  -tags                 filter by tags")
+		fmt.Println("  -dry-run              do not actually install commands")
+		fmt.Println("\nFetch argument syntax:")
+		fmt.Println("  <command>             fetch command from repository")
+		fmt.Println("  <repo>                fetch command from repository")
+		fmt.Println("  <https://repo_path>   fetch command from repository")
+		fmt.Println("  @<file>               fetch commands listed in file")
 		os.Exit(1)
 	}
 	command := os.Args[1]
@@ -122,6 +128,7 @@ func main() {
 	fetchConfigPath := fetchCmd.String("config", "config.toml", "Path to the TOML configuration file")
 	fetchUpdate := fetchCmd.Bool("update", false, "Update commands if already installed")
 	fetchTags := fetchCmd.String("tags", "", "Filter by tags")
+	fetchDryRun := fetchCmd.Bool("dry-run", false, "Do not actually install commands")
 
 	switch command {
 	case "list":
@@ -133,10 +140,10 @@ func main() {
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)
-			doFetch(*fetchConfigPath, *fetchUpdate, nil, expandTags(*fetchTags))
+			doFetch(*fetchConfigPath, *fetchUpdate, nil, expandTags(*fetchTags), *fetchDryRun)
 		} else {
 			fetchCmd.Parse(args[1:])
-			doFetch(*fetchConfigPath, *fetchUpdate, &args[0], expandTags(*fetchTags))
+			doFetch(*fetchConfigPath, *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchDryRun)
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
@@ -232,7 +239,7 @@ func doTags(configPath string) {
 	fmt.Println(t)
 }
 
-func doFetch(configPath string, update bool, command *string, tags []string) {
+func doFetch(configPath string, update bool, command *string, tags []string, dryRun bool) {
 	hostArch := strings.ToLower(runtime.GOARCH)
 	hostOS := strings.ToLower(runtime.GOOS)
 
@@ -258,22 +265,49 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 
 	var checkedRepos *Repositories
 
+	var commands []string
 	var bits []string
+	useCommandList := false
 	if command != nil {
-		bits = strings.Split(*command, "/")
-	}
-	if len(bits) > 1 {
-		// This is a repo
-		var directRepo Repository
-		if bits[0] == "https:" {
-			directRepo.Name = strings.Join(bits[3:5], "/")
-			directRepo.File = bits[4]
+		if strings.HasPrefix(*command, "@") {
+			useCommandList = true
+			checkedRepos = &config.Repositories
+			filePath := strings.TrimPrefix(*command, "@")
+			if file, err := os.Open(filePath); err != nil {
+				fmt.Printf("Error opening file %s: %v\n", filePath, err)
+				os.Exit(1)
+			} else {
+				defer file.Close()
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					line := strings.TrimSpace(scanner.Text())
+					if line == "" {
+						continue
+					}
+					commands = append(commands, line)
+				}
+			}
 		} else {
-			directRepo.Name = strings.Join(bits[0:2], "/")
-			directRepo.File = bits[1]
+			bits = strings.Split(*command, "/")
 		}
-		*command = directRepo.File
-		checkedRepos = &Repositories{directRepo}
+		if !useCommandList {
+			if len(bits) > 1 {
+				// This is a repo
+				var directRepo Repository
+				if bits[0] == "https:" {
+					directRepo.Name = strings.Join(bits[3:5], "/")
+					directRepo.File = bits[4]
+				} else {
+					directRepo.Name = strings.Join(bits[0:2], "/")
+					directRepo.File = bits[1]
+				}
+				*command = directRepo.File
+				checkedRepos = &Repositories{directRepo}
+			} else {
+				checkedRepos = &config.Repositories
+			}
+			commands = append(commands, *command)
+		}
 	} else {
 		checkedRepos = &config.Repositories
 	}
@@ -282,8 +316,17 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 
 	fmt.Printf("[Preflight]\n")
 	for _, repo := range *checkedRepos {
-		if command != nil && *command != repo.File {
-			continue
+		if len(commands) > 0 {
+			found := false
+			for _, v := range commands {
+				if v == repo.File {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
 		}
 		if len(tags) > 0 && !containsTag(repo.Tags, tags) {
 			continue
@@ -377,6 +420,14 @@ func doFetch(configPath string, update bool, command *string, tags []string) {
 	// TODO What happens if not all repositories are OK?
 	fmt.Printf("[Fetching]\n")
 	for _, repoStatus := range repoStatusList {
+		if dryRun {
+			if repoStatus.Status != RepoOK {
+				fmt.Printf("  %s %s\n", repoStatus.Repo.Name, warningStyle.Render("Dry-Run: [Ignored]"))
+				continue
+			}
+			fmt.Printf("  %s %s\n", repoStatus.Repo.Name, okStyle.Render("Dry-Run: [Fetched]"))
+			continue
+		}
 		if repoStatus.Status != RepoOK {
 			fmt.Printf("  %s %s\n", repoStatus.Repo.Name, warningStyle.Render("[Ignored]"))
 			continue
@@ -414,6 +465,9 @@ func readConfig(configPath string) (Config, error) {
 		}
 		for _, entry := range entries {
 			if entry.IsDir() {
+				continue
+			}
+			if !strings.HasSuffix(entry.Name(), ".toml") {
 				continue
 			}
 			fmt.Printf("Config merging %s\n", entry.Name())

@@ -83,7 +83,7 @@ type RepoStatus struct {
 }
 
 var (
-	VERSION = "0.0.4"
+	VERSION = "0.0.5"
 
 	ArchEquiv = map[string][]string{
 		"amd64": {"amd64", "x86_64", ""},

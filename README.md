@@ -74,11 +74,12 @@ token = "github_<xxxxxxxxxx>"
 #### Releasing
 
 ```
-git tag v<semantic-tag>
+export RELEASE_TAG=<semantic-tag>
+git tag v$RELEASE_TAG
 git push --tags
-gh release create v<semantic-tag>
-gh release upload v<semantic-tag> gogo-darwin-arm64 gogo-linux-amd64
-gh release edit v<semantic-tag> --draft=false --latest
+gh release create v$RELEASE_TAG
+gh release upload v$RELEASE_TAG gogo-darwin-arm64 gogo-linux-amd64
+gh release edit v$RELEASE_TAG --draft=false --latest
 ```
 
 #### TODO

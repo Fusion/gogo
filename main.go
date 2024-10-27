@@ -83,11 +83,12 @@ type RepoStatus struct {
 }
 
 var (
-	VERSION = "0.0.5"
+	VERSION = "0.0.6"
 
+	// This list is sorted from least desirable to most desirable
 	ArchEquiv = map[string][]string{
-		"amd64": {"amd64", "x86_64", ""},
-		"arm64": {"arm64", "amd64", "x86_64", ""},
+		"amd64": {"", "musl", "amd64", "x86_64"},
+		"arm64": {"", "x86_64", "arm64", "aarch64"},
 	}
 	OSEquiv = map[string][]string{
 		"darwin": {"darwin", "macos", "osx"},
@@ -385,30 +386,41 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 			osList = []string{hostOS}
 		}
 
-	finderloop:
+		var candidateAsset *ReleaseAsset
+		var candidateStrength uint8
+	assetLoop:
 		for _, asset := range release.Assets {
 			assetName := strings.ToLower(asset.Name)
-			if strings.Contains(assetName, ".sha") {
-				// following a common convention, we ignore SHA files
-				continue
+			// following a common convention, we ignore SHA files, signatures, etc.
+			for _, ignore := range []string{".sha", ".sig", ".asc"} {
+				if strings.Contains(assetName, ignore) {
+					continue assetLoop
+				}
 			}
-			for _, arch := range archList {
+			for archIdx, arch := range archList {
 				if !strings.Contains(assetName, arch) {
 					continue
 				}
-				for _, os := range osList {
+				for osIdx, os := range osList {
 					if !strings.Contains(assetName, os) {
 						continue
 					}
-					fmt.Printf("  + identified Asset: %s (%s, %s)\n", asset.Name, arch, os)
-					repoStatus.Status = RepoOK
-					repoStatus.Asset = asset.Name
-					repoStatus.Url = asset.BrowserDownloadURL
-					repoStatus.Format = getAssetFormat(asset.Name)
-					break finderloop
+					strength := uint8(osIdx<<4 + archIdx)
+					if strength > candidateStrength {
+						candidateStrength = strength
+						candidateAsset = &asset
+					}
 				}
 			}
 		}
+		if candidateAsset != nil {
+			fmt.Printf("  + identified Asset: %s\n", candidateAsset.Name)
+			repoStatus.Status = RepoOK
+			repoStatus.Asset = candidateAsset.Name
+			repoStatus.Url = candidateAsset.BrowserDownloadURL
+			repoStatus.Format = getAssetFormat(candidateAsset.Name)
+		}
+
 		repoStatusList = append(repoStatusList, repoStatus)
 	}
 

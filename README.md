@@ -86,3 +86,16 @@ gh release edit v$RELEASE_TAG --draft=false --latest
 
 - Use ldd to determine who's truly standalone
 - Review tags because right now they are pretty weakly picked
+
+### FAQ
+
+Please note that this FAQ mostly addresses issues that are out of my control.
+
+**Q: Why am I seeing a GLIBC error when I run some binaries?**
+
+A: This is a known issue. The binaries I fetch are built for more recent versions of glibc than the one you have. 
+You can either build them yourself, or reach out to the maintainer of the project to build them for your architecture.
+
+**Q: Why am I seeing a message about libunwind?**
+
+A: This happens with some binaries that depend on libunwind. This is ok and the binaries are still fully functional. You can suppress this error by appending `2>/dev/null` to your shell command. This is especially helpful if you are running a curses-based tool.

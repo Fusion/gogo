@@ -82,13 +82,20 @@ type RepoStatus struct {
 	Url    string
 }
 
+type ArchInfo struct {
+	desired   *[]string
+	undesired []*[]string
+}
+
 var (
-	VERSION = "0.0.6"
+	VERSION = "0.0.7"
 
 	// This list is sorted from least desirable to most desirable
-	ArchEquiv = map[string][]string{
-		"amd64": {"", "musl", "amd64", "x86_64"},
-		"arm64": {"", "x86_64", "arm64", "aarch64"},
+	Amd64Arch = []string{"", "amd64", "x86_64", "musl"}
+	Arm64Arch = []string{"", "arm", "arm64", "aarch64"}
+	ArchEquiv = map[string]ArchInfo{
+		"amd64": ArchInfo{desired: &Amd64Arch, undesired: []*[]string{&Arm64Arch}},
+		"arm64": ArchInfo{desired: &Arm64Arch, undesired: []*[]string{&Amd64Arch}},
 	}
 	OSEquiv = map[string][]string{
 		"darwin": {"darwin", "macos", "osx"},
@@ -379,7 +386,7 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 
 		archList, ok := ArchEquiv[hostArch]
 		if !ok {
-			archList = []string{hostArch}
+			archList = ArchInfo{desired: &[]string{hostArch}}
 		}
 		osList, ok := OSEquiv[hostOS]
 		if !ok {
@@ -397,9 +404,19 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 					continue assetLoop
 				}
 			}
-			for archIdx, arch := range archList {
-				if !strings.Contains(assetName, arch) {
+			for archIdx, archName := range *archList.desired {
+				if !strings.Contains(assetName, archName) {
 					continue
+				}
+				for _, undesired := range archList.undesired {
+					for _, undesiredArch := range *undesired {
+						if undesiredArch == "" {
+							continue
+						}
+						if strings.Contains(assetName, undesiredArch) {
+							continue assetLoop
+						}
+					}
 				}
 				for osIdx, os := range osList {
 					if !strings.Contains(assetName, os) {
@@ -407,6 +424,7 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 					}
 					strength := uint8(osIdx<<4 + archIdx)
 					if strength > candidateStrength {
+						// Look for contradicting information
 						candidateStrength = strength
 						candidateAsset = &asset
 					}

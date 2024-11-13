@@ -88,7 +88,7 @@ type ArchInfo struct {
 }
 
 var (
-	VERSION = "0.0.7"
+	VERSION = "0.0.8"
 
 	// This list is sorted from least desirable to most desirable
 	Amd64Arch = []string{"", "amd64", "x86_64", "musl"}
@@ -129,12 +129,12 @@ func main() {
 	args := os.Args[2:]
 
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-	listConfigPath := listCmd.String("config", "config.toml", "Path to the TOML configuration file")
+	listConfigPath := listCmd.String("config", "", "Path to the TOML configuration file")
 	listTags := listCmd.String("tags", "", "Filter by tags")
 	tagsCmd := flag.NewFlagSet("tags", flag.ExitOnError)
-	tagsConfigPath := tagsCmd.String("config", "config.toml", "Path to the TOML configuration file")
+	tagsConfigPath := tagsCmd.String("config", "", "Path to the TOML configuration file")
 	fetchCmd := flag.NewFlagSet("fetch", flag.ExitOnError)
-	fetchConfigPath := fetchCmd.String("config", "config.toml", "Path to the TOML configuration file")
+	fetchConfigPath := fetchCmd.String("config", "", "Path to the TOML configuration file")
 	fetchUpdate := fetchCmd.Bool("update", false, "Update commands if already installed")
 	fetchTags := fetchCmd.String("tags", "", "Filter by tags")
 	fetchDryRun := fetchCmd.Bool("dry-run", false, "Do not actually install commands")
@@ -142,22 +142,61 @@ func main() {
 	switch command {
 	case "list":
 		listCmd.Parse(args)
-		doList(*listConfigPath, expandTags(*listTags))
+		doList(configPath(*listConfigPath), expandTags(*listTags))
 	case "tags":
 		tagsCmd.Parse(args)
 		doTags(*tagsConfigPath)
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)
-			doFetch(*fetchConfigPath, *fetchUpdate, nil, expandTags(*fetchTags), *fetchDryRun)
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, nil, expandTags(*fetchTags), *fetchDryRun)
 		} else {
 			fetchCmd.Parse(args[1:])
-			doFetch(*fetchConfigPath, *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchDryRun)
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchDryRun)
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		os.Exit(1)
 	}
+}
+
+func configPath(configPath string) string {
+	if configPath == "" {
+		dir, dirErr := os.UserConfigDir()
+		if dirErr != nil {
+			fmt.Printf("Error getting user config directory: %v\n", dirErr)
+			os.Exit(1)
+		}
+		userPath := filepath.Join(dir, "gogo")
+		if _, err := os.Stat(userPath); os.IsNotExist(err) {
+			if err := os.MkdirAll(userPath, 0755); err != nil {
+				fmt.Printf("Error creating config directory: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		configFile := filepath.Join(dir, "gogo", "config.toml")
+		if _, err := os.Stat(configFile); os.IsNotExist(err) {
+			f, err := os.Create(configFile)
+			if err != nil {
+				fmt.Printf("Error creating config file: %v\n", err)
+				os.Exit(1)
+			}
+			defer f.Close()
+
+			defaultConfig := Config{Auth: Auth{Token: "github_<your-token>"}, Paths: Paths{TargetDir: "~/.local/bin"}}
+			encoder := toml.NewEncoder(f)
+			if err := encoder.Encode(defaultConfig); err != nil {
+				fmt.Printf("Error writing default config: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf(okStyle.Render("Created default configuration in %s (binaries stored in ~/.local/bin)"), userPath)
+			fmt.Printf("\nIf you wish to use a github token, add the following to config.toml:\n\n")
+			fmt.Printf("[auth]\n")
+			fmt.Printf("token = \"<your-token>\"\n\n")
+		}
+		return userPath
+	}
+	return configPath
 }
 
 func expandTags(tags string) []string {
@@ -507,7 +546,7 @@ func readConfig(configPath string) (Config, error) {
 			if !strings.HasSuffix(entry.Name(), ".toml") {
 				continue
 			}
-			fmt.Printf("Config merging %s\n", entry.Name())
+			//fmt.Printf("Config merging %s\n", entry.Name())
 			oneConfig, err := readOneConfig(filepath.Join(configPath, entry.Name()))
 			if err != nil {
 				return config, err

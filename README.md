@@ -55,6 +55,10 @@ To specify a different location, add to your configuration file/directory:
 targetdir = "<path>"
 ```
 
+### Where is that configuration file?
+
+By default, it will be created in your user config directory, under `gogo`. You can specify a different location by running `gogo -config <path>`.
+
 ### Working with GitHub's rate limiter
 
 If you are running this tool as an anonymous user, you will be able to perform up to 60 queries per hour. If should be enough for many use cases.

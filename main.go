@@ -110,6 +110,7 @@ func main() {
 		fmt.Printf("gogo v%s (https://github.com/fusion/gogo)\n\n", VERSION)
 		fmt.Printf("Usage: %s <action> [-config <config-file>] [-update]\n\nAvailable actions:\n", os.Args[0])
 		fmt.Println("  list                  list available commands")
+		fmt.Println("  refresh               refresh list of available commands")
 		fmt.Println("  tags                  display all tags")
 		fmt.Println("  fetch <argument>      fetch one or some or all commands")
 		fmt.Println("                        (can be author/repo or full GitHub URL)")
@@ -131,6 +132,8 @@ func main() {
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
 	listConfigPath := listCmd.String("config", "", "Path to the TOML configuration file")
 	listTags := listCmd.String("tags", "", "Filter by tags")
+	refreshCmd := flag.NewFlagSet("refresh", flag.ExitOnError)
+	refreshConfigPath := refreshCmd.String("config", "", "Path to the TOML configuration file")
 	tagsCmd := flag.NewFlagSet("tags", flag.ExitOnError)
 	tagsConfigPath := tagsCmd.String("config", "", "Path to the TOML configuration file")
 	fetchCmd := flag.NewFlagSet("fetch", flag.ExitOnError)
@@ -143,6 +146,9 @@ func main() {
 	case "list":
 		listCmd.Parse(args)
 		doList(configPath(*listConfigPath), expandTags(*listTags))
+	case "refresh":
+		refreshCmd.Parse(args)
+		doRefresh(configPath(*refreshConfigPath))
 	case "tags":
 		tagsCmd.Parse(args)
 		doTags(*tagsConfigPath)
@@ -235,6 +241,62 @@ func doList(configPath string, tags []string) {
 		t.Row(repo.File, repo.Comment, strings.Join(repo.Tags, ", "))
 	}
 	fmt.Println(t)
+}
+
+func doRefresh(configPath string) {
+	config, err := readConfig(configPath)
+	if err != nil {
+		fmt.Printf("Error reading config: %v\n", err)
+		os.Exit(1)
+	}
+	url := fmt.Sprintf("https://api.github.com/repos/fusion/gogo/releases/latest")
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if config.Auth.Token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("token %s", config.Auth.Token))
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("  - Error fetching gogo releases: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("  - Non-OK HTTP status: %s\n", resp.Status)
+		os.Exit(1)
+	}
+
+	var release struct {
+		Assets []ReleaseAsset `json:"assets"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		fmt.Printf("  - Error decoding JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	for _, asset := range release.Assets {
+		if asset.Name != "config.tgz" {
+			continue
+		}
+		fmt.Printf("Downloading from %s\n", asset.BrowserDownloadURL)
+		resp, err := http.Get(asset.BrowserDownloadURL)
+		if err != nil {
+			fmt.Printf("  - Error fetching gogo update: %v\n", err)
+			os.Exit(1)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("  - Non-OK HTTP status: %s\n", resp.Status)
+			os.Exit(1)
+		}
+		if err := writeTargzipContent(configPath, resp.Body); err != nil {
+			fmt.Printf("  - Error writing extracted file: %v\n", err)
+			os.Exit(1)
+		}
+	}
 }
 
 func doTags(configPath string) {
@@ -757,6 +819,51 @@ func writeTargzipFile(fileName string, utils []string, targetDir string, content
 		}
 		if len(utils) == 0 {
 			break
+		}
+	}
+	return nil
+}
+
+func writeTargzipContent(targetDir string, content io.Reader) error {
+	tmpPath, err := os.MkdirTemp("/tmp", "gogo_work_*")
+	if err != nil {
+		fmt.Printf("error creating temp file: %v", err)
+		os.Exit(1)
+	}
+	tmpFileName := filepath.Join(tmpPath, "asset.tar.gz")
+	if err := writeBinaryFile(tmpFileName, content); err != nil {
+		return err
+	}
+	file, err := os.Open(tmpFileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		fileName := filepath.Base(header.Name)
+		if fileName == "config.toml" {
+			continue
+		}
+		filePath := filepath.Join(targetDir, fileName)
+		fmt.Printf("  - Extracting to %s\n", filePath)
+		if err := writeBinaryFile(filePath, tarReader); err != nil {
+			return err
 		}
 	}
 	return nil

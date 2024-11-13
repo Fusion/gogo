@@ -20,6 +20,7 @@ A few examples:
 - [certinfo](https://github.com/pete911/certinfo)
 - [croc](https://github.com/schollz/croc)
 
+But also _tldr, lazysql, lazygit, croc, bit, viddy, up, fd, lsd, bat, fzf, rg, difft, certinfo, sops, age, gomuks, gotty, humanlog, jira, plow, pngsource, reflex, jq, gojq, jqp, mlr, fx, hugo, syncthing, minikube, dog, sd, navi, grex, zellij, xplr, gping, dust, dua, duf, xh, frp, rclone, etc._
 
 ### Typical workflow
 
@@ -54,7 +55,7 @@ To specify a different location, add to your configuration file/directory:
 targetdir = "<path>"
 ```
 
-### Working around GitHub's rate limiter
+### Working with GitHub's rate limiter
 
 If you are running this tool as an anonymous user, you will be able to perform up to 60 queries per hour. If should be enough for many use cases.
 
@@ -74,11 +75,12 @@ token = "github_<xxxxxxxxxx>"
 #### Releasing
 
 ```
+make && make package
 export RELEASE_TAG=<semantic-tag>
 git tag v$RELEASE_TAG
 git push --tags
 gh release create v$RELEASE_TAG
-gh release upload v$RELEASE_TAG gogo-darwin-arm64 gogo-linux-amd64
+gh release upload v$RELEASE_TAG gogo-darwin-arm64 gogo-linux-amd64 config.tgz
 gh release edit v$RELEASE_TAG --draft=false --latest
 ```
 

@@ -88,7 +88,7 @@ type ArchInfo struct {
 }
 
 var (
-	VERSION = "0.0.8"
+	VERSION = "0.0.9"
 
 	// This list is sorted from least desirable to most desirable
 	Amd64Arch = []string{"", "amd64", "x86_64", "musl"}

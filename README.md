@@ -14,35 +14,69 @@ All it does is, provided a minimal list of hints, it will download and install w
 - as long as they are available as packages on github
 
 A few examples: 
-- [tldr](https://github.com/isacikgoz/tldr)
-- [lazygit](https://github.com/jesseduffield/lazygit)
-- [lazysql](https://github.com/jorgerojas26/lazysql)
-- [certinfo](https://github.com/pete911/certinfo)
-- [croc](https://github.com/schollz/croc)
+[tldr](https://github.com/isacikgoz/tldr), [lazygit](https://github.com/jesseduffield/lazygit), [lazysql](https://github.com/jorgerojas26/lazysql), [certinfo](https://github.com/pete911/certinfo)
 
 But also _tldr, lazysql, lazygit, croc, bit, viddy, up, fd, lsd, bat, fzf, rg, difft, certinfo, sops, age, gomuks, gotty, humanlog, jira, plow, pngsource, reflex, jq, gojq, jqp, mlr, fx, hugo, syncthing, minikube, dog, sd, navi, grex, zellij, xplr, gping, dust, dua, duf, xh, frp, rclone, etc._
 
 ### Typical workflow
 
-First setup:
+#### Installing:
 
-1. Download `gogo` and install it in your path
-2. Create or re-use an existing configuration
-3. Run `gogo fetch -config <path-to-configuration>`
+1. Download the latest [binary release](https://github.com/Fusion/gogo/releases) for your OS
+2. Rename it `gogo` and make sure it is in your path
 
-Updating a single command:
+#### Configuring:
 
-1. Confirm command name using `gogo list -config <path-to-configuration>`
-2. Run `goto fetch <command-name> -config <path-to-configuration> -update`
+1. Run `gogo list` and the path to your new configuration file will be provided
+2. Recommended: update your Github token in `config.toml`
 
-Installing missing commands:
+#### Packages list:
+
+While `gogo` supports running directly against a Github repo (`gogo <pkg>` or `gogo <user>/</pkg>`), 
+you should regularly update its list of pre-configured packages:
+
+1. `gogo refresh`
+2. `gogo list`
+
+#### Getting help:
+
+- `gogo`
+- `gogo fetch --help`
+
+etc.
+
+#### Updating a single command:
+
+1. Confirm command name: `gogo list [-config <path-to-configuration>]`
+2. Run: `goto fetch <command-name> [-config <path-to-configuration>] -update`
+
+#### Installing missing commands:
 
 1. Update configuration to include these commands
-2. Run `gogo fetch -config <path-to-configuration>`
+2. Run `gogo fetch [-config <path-to-configuration>]`
 
-Refresh all commands:
+NOTE: As `gogo`'s packages list grows, it seems like a bad idea to ask it to install every single package. 
+Instead....
 
-1. Run `goto fetch -config <path-to-configuration> -update`
+#### Installing from a personalized list:
+
+Create a file of favorites, with a package name per line. For instance, `chris_favs`:
+
+```
+tldr
+lazysql
+lazygit
+viddy
+...
+```
+
+Run: `gogo fetch @chris_favs`
+
+Obviously, replace `chris_favs` with the path to your own favorites file.
+
+#### Refreshing all commands:
+
+1. Run `goto fetch [-config <path-to-configuration>] -update`
 
 ### Specifying where the commands should go
 

@@ -153,7 +153,7 @@ func main() {
 		doRefresh(configPath(*refreshConfigPath))
 	case "tags":
 		tagsCmd.Parse(args)
-		doTags(*tagsConfigPath)
+		doTags(configPath(*tagsConfigPath))
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)

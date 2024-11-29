@@ -18,6 +18,10 @@ A few examples:
 
 But also _tldr, lazysql, lazygit, croc, bit, viddy, up, fd, lsd, bat, fzf, rg, difft, certinfo, sops, age, gomuks, gotty, humanlog, jira, plow, pngsource, reflex, jq, gojq, jqp, mlr, fx, hugo, syncthing, minikube, dog, sd, navi, grex, zellij, xplr, gping, dust, dua, duf, xh, frp, rclone, etc._
 
+<img align="left" src="assets/gogo.gif">
+
+<br clear="all">
+
 ### Typical workflow
 
 #### Installing:

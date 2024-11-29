@@ -1,5 +1,5 @@
 [[repositories]]
-name = "isacikgoz/tldr"
+name = "tealdeer-rs/tealdeer"
 file = "tldr"
 comment = "quick help for any command"
 tags = ["help"]

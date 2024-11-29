@@ -167,3 +167,46 @@ name = "rclone/rclone"
 file = "rclone"
 comment = "sync files and directories to and from different cloud storage providers"
 tags = ["networking"]
+
+[[repositories]]
+name = "martinvonz/jj"
+file = "jj"
+comment = "Git-compatible VCS that is both simple and powerful"
+tags = ["development"]
+
+[[repositories]]
+name = "alexpasmantier/television"
+file = "tv"
+comment = "general purpose fuzzy finder TUI"
+tags = ["shell"]
+
+[[repositories]]
+name = "hengyoush/kyanos"
+file = "kyanos"
+comment = "visualize and analyze packets in the kernel"
+tags = ["development", "networking"]
+
+[[repositories]]
+name = "Hakky54/certificate-ripper"
+file = "crip"
+comment = "extract server certificates"
+tags = ["security", "networking"]
+
+[[repositories]]
+name = "homeport/dyff"
+file = "dyff"
+comment = "diff/convert yaml and json"
+tags = ["utils", "devops"]
+
+[[repositories]]
+name = "astral-sh/uv"
+file = "uv"
+utils = ["uvx"]
+comment = "fast Python package and project manager"
+tags = ["utils"]
+
+[[repositories]]
+name = "nushell/nushell"
+file = "nu"
+comment = "data handling shell"
+tags = ["utils", "shell"]

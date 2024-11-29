@@ -79,7 +79,7 @@ token = "github_<xxxxxxxxxx>"
 #### Releasing
 
 ```
-make && make package
+make && make package && chmod +x gogo-*
 export RELEASE_TAG=<semantic-tag>
 git tag v$RELEASE_TAG
 git push --tags

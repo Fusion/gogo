@@ -118,6 +118,7 @@ func main() {
 		fmt.Println("  -config <config-file> path to a configuration file or directory")
 		fmt.Println("  -update               update commands if already installed")
 		fmt.Println("  -tags                 filter by tags")
+		fmt.Println("  -verbose              detailed output")
 		fmt.Println("  -dry-run              do not actually install commands")
 		fmt.Println("\nFetch argument syntax:")
 		fmt.Println("  <command>             fetch command from repository")
@@ -140,6 +141,7 @@ func main() {
 	fetchConfigPath := fetchCmd.String("config", "", "Path to the TOML configuration file")
 	fetchUpdate := fetchCmd.Bool("update", false, "Update commands if already installed")
 	fetchTags := fetchCmd.String("tags", "", "Filter by tags")
+	fetchVerbose := fetchCmd.Bool("verbose", false, "Detailed output")
 	fetchDryRun := fetchCmd.Bool("dry-run", false, "Do not actually install commands")
 
 	switch command {
@@ -155,10 +157,10 @@ func main() {
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)
-			doFetch(configPath(*fetchConfigPath), *fetchUpdate, nil, expandTags(*fetchTags), *fetchDryRun)
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, nil, expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
 		} else {
 			fetchCmd.Parse(args[1:])
-			doFetch(configPath(*fetchConfigPath), *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchDryRun)
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
@@ -349,10 +351,15 @@ func doTags(configPath string) {
 	fmt.Println(t)
 }
 
-func doFetch(configPath string, update bool, command *string, tags []string, dryRun bool) {
+func doFetch(configPath string, update bool, command *string, tags []string, verbose bool, dryRun bool) {
 	hostArch := strings.ToLower(runtime.GOARCH)
 	hostOS := strings.ToLower(runtime.GOOS)
 
+	if verbose {
+		verbosePrintf("  - Host architecture: %s\n", hostArch)
+		verbosePrintf("  - Host OS: %s\n", hostOS)
+		verbosePrintf("  - Config path: %s\n", configPath)
+	}
 	config, err := readConfig(configPath)
 	if err != nil {
 		fmt.Printf("Error reading config: %v\n", err)
@@ -367,6 +374,9 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 	if err != nil {
 		fmt.Printf("Error expanding target directory: %v\n", err)
 		os.Exit(1)
+	}
+	if verbose {
+		verbosePrintf("  - Target dir: %s\n", config.Paths.TargetDir)
 	}
 	if err := checkTargetDir(config.Paths.TargetDir); err != nil {
 		fmt.Printf("Error checking target directory: %v\n", err)
@@ -383,6 +393,9 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 			useCommandList = true
 			checkedRepos = &config.Repositories
 			filePath := strings.TrimPrefix(*command, "@")
+			if verbose {
+				verbosePrintf("  - Command list file: %s\n", filePath)
+			}
 			if file, err := os.Open(filePath); err != nil {
 				fmt.Printf("Error opening file %s: %v\n", filePath, err)
 				os.Exit(1)
@@ -422,6 +435,10 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 		checkedRepos = &config.Repositories
 	}
 
+	if verbose {
+		verbosePrintf("  - Commands: %v\n", commands)
+		verbosePrintf("  - Tags: %v\n", tags)
+	}
 	repoStatusList := []RepoStatus{}
 
 	fmt.Printf("[Preflight]\n")
@@ -499,14 +516,23 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 	assetLoop:
 		for _, asset := range release.Assets {
 			assetName := strings.ToLower(asset.Name)
+			if verbose {
+				verbosePrintf("  - Matching Asset: %s\n", assetName)
+			}
 			// following a common convention, we ignore SHA files, signatures, etc.
 			for _, ignore := range []string{".sha", ".sig", ".asc"} {
 				if strings.Contains(assetName, ignore) {
+					if verbose {
+						verbosePrintf("  - Ignoring Asset due to suffix %s\n", ignore)
+					}
 					continue assetLoop
 				}
 			}
 			for archIdx, archName := range *archList.desired {
 				if !strings.Contains(assetName, archName) {
+					if verbose {
+						verbosePrintf("  - Ignoring Asset due to not matching architecture %s\n", archName)
+					}
 					continue
 				}
 				for _, undesired := range archList.undesired {
@@ -515,12 +541,18 @@ func doFetch(configPath string, update bool, command *string, tags []string, dry
 							continue
 						}
 						if strings.Contains(assetName, undesiredArch) {
+							if verbose {
+								verbosePrintf("  - Ignoring Asset due to matching undesired architecture %s\n", undesiredArch)
+							}
 							continue assetLoop
 						}
 					}
 				}
 				for osIdx, os := range osList {
 					if !strings.Contains(assetName, os) {
+						if verbose {
+							verbosePrintf("  - Ignoring Asset for not matching OS %s\n", os)
+						}
 						continue
 					}
 					strength := uint8(osIdx<<4 + archIdx)
@@ -935,4 +967,8 @@ func writeBinaryFile(filePath string, content io.Reader) error {
 	}
 
 	return nil
+}
+
+func verbosePrintf(format string, a ...any) {
+	fmt.Printf(format, a...)
 }

@@ -210,3 +210,59 @@ name = "nushell/nushell"
 file = "nu"
 comment = "data handling shell"
 tags = ["utils", "shell"]
+
+[[repositories]]
+name = "miconda/sipexer"
+file = "sipexer"
+comment = "SIP/VoIP cli tool"
+tags = ["networking"]
+
+[[repositories]]
+name = "duckdb/duckdb"
+file = "duckdb"
+comment = "analytical in-process SQL database"
+tags = ["data handling"]
+
+[[repositories]]
+name = "mikefarah/yq"
+file = "yq"
+comment = "a portable command-line YAML, JSON, XML, CSV, TOML and properties processor"
+tags = ["data handling"]
+
+[[repositories]]
+name = "bvaisvil/zenith"
+file = "zenith"
+comment = "top or htop but with zoom-able charts, network, disk"
+tags = ["shell", "utils"]
+
+[[repositories]]
+name = "blacknon/hwatch"
+file = "hwatch"
+comment = "watch command, records the differences in execution results"
+tags = ["shell", "utils"]
+
+[[repositories]]
+name = "noborus/ov"
+file = "ov"
+comment = "terminal-based text viewer and terminal pager"
+tags = ["shell", "utils"]
+
+[[repositories]]
+name = "JFryy/qq"
+file = "qq"
+comment = "config format transcoder with interactive querying"
+tags = ["data handling"]
+
+[[repositories]]
+name = "sigoden/aichat"
+file = "aichat"
+comment = "Shell Assistant"
+tags = ["shell"]
+
+[[repositories]]
+name = "sigoden/argc"
+file = "argc"
+comment = "Bash CLI framework"
+tags = ["shell"]
+
+

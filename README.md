@@ -130,6 +130,9 @@ gh release edit v$RELEASE_TAG --draft=false --latest
 
 - Use ldd to determine who's truly standalone
 - Review tags because right now they are pretty weakly picked
+- Parallel install
+- SLSA 2
+- Pick a version
 
 ### FAQ
 

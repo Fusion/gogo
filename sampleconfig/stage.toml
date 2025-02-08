@@ -1,0 +1,5 @@
+[[repositories]]
+name = "fusion/rdap"
+file = "rdap"
+comment = "RDAP command line client from openrdap/rdap"
+tags = ["networking"]

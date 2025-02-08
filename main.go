@@ -87,6 +87,11 @@ type ArchInfo struct {
 	undesired []*[]string
 }
 
+type ForcedOptions struct {
+	arch *string
+	os   *string
+}
+
 var (
 	VERSION = "0.0.9"
 
@@ -117,6 +122,8 @@ func main() {
 		fmt.Println("\nFlags:")
 		fmt.Println("  -config <config-file> path to a configuration file or directory")
 		fmt.Println("  -update               update commands if already installed")
+		fmt.Println("  -arch  <string>       force architecture (eg: amd64)")
+		fmt.Println("  -os  <string>         force os (eg: linux)")
 		fmt.Println("  -tags                 filter by tags")
 		fmt.Println("  -verbose              detailed output")
 		fmt.Println("  -dry-run              do not actually install commands")
@@ -130,16 +137,23 @@ func main() {
 	command := os.Args[1]
 	args := os.Args[2:]
 
+	forcedOptions := ForcedOptions{arch: nil, os: nil}
+
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
 	listConfigPath := listCmd.String("config", "", "Path to the TOML configuration file")
 	listTags := listCmd.String("tags", "", "Filter by tags")
+
 	refreshCmd := flag.NewFlagSet("refresh", flag.ExitOnError)
 	refreshConfigPath := refreshCmd.String("config", "", "Path to the TOML configuration file")
+
 	tagsCmd := flag.NewFlagSet("tags", flag.ExitOnError)
 	tagsConfigPath := tagsCmd.String("config", "", "Path to the TOML configuration file")
+
 	fetchCmd := flag.NewFlagSet("fetch", flag.ExitOnError)
 	fetchConfigPath := fetchCmd.String("config", "", "Path to the TOML configuration file")
 	fetchUpdate := fetchCmd.Bool("update", false, "Update commands if already installed")
+	fetchForceArch := fetchCmd.String("arch", "", "Force architecture")
+	fetchForceOS := fetchCmd.String("os", "", "Force os")
 	fetchTags := fetchCmd.String("tags", "", "Filter by tags")
 	fetchVerbose := fetchCmd.Bool("verbose", false, "Detailed output")
 	fetchDryRun := fetchCmd.Bool("dry-run", false, "Do not actually install commands")
@@ -157,10 +171,22 @@ func main() {
 	case "fetch":
 		if strings.HasPrefix(args[0], "-") {
 			fetchCmd.Parse(args)
-			doFetch(configPath(*fetchConfigPath), *fetchUpdate, nil, expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
+			if *fetchForceArch != "" {
+				forcedOptions.arch = fetchForceArch
+			}
+			if *fetchForceOS != "" {
+				forcedOptions.os = fetchForceOS
+			}
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, nil, forcedOptions, expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
 		} else {
 			fetchCmd.Parse(args[1:])
-			doFetch(configPath(*fetchConfigPath), *fetchUpdate, &args[0], expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
+			if *fetchForceArch != "" {
+				forcedOptions.arch = fetchForceArch
+			}
+			if *fetchForceOS != "" {
+				forcedOptions.os = fetchForceOS
+			}
+			doFetch(configPath(*fetchConfigPath), *fetchUpdate, &args[0], forcedOptions, expandTags(*fetchTags), *fetchVerbose, *fetchDryRun)
 		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
@@ -351,7 +377,7 @@ func doTags(configPath string) {
 	fmt.Println(t)
 }
 
-func doFetch(configPath string, update bool, command *string, tags []string, verbose bool, dryRun bool) {
+func doFetch(configPath string, update bool, command *string, forcedOptions ForcedOptions, tags []string, verbose bool, dryRun bool) {
 	hostArch := strings.ToLower(runtime.GOARCH)
 	hostOS := strings.ToLower(runtime.GOOS)
 
@@ -517,41 +543,58 @@ func doFetch(configPath string, update bool, command *string, tags []string, ver
 		for _, asset := range release.Assets {
 			assetName := strings.ToLower(asset.Name)
 			if verbose {
-				verbosePrintf("  - Matching Asset: %s\n", assetName)
+				verbosePrintf("  Matching Asset: %s\n", assetName)
 			}
 			// following a common convention, we ignore SHA files, signatures, etc.
 			for _, ignore := range []string{".sha", ".sig", ".asc"} {
 				if strings.Contains(assetName, ignore) {
 					if verbose {
-						verbosePrintf("  - Ignoring Asset due to suffix %s\n", ignore)
+						verbosePrintf("    - Ignoring Asset due to suffix %s\n", ignore)
 					}
 					continue assetLoop
 				}
 			}
 			for archIdx, archName := range *archList.desired {
-				if !strings.Contains(assetName, archName) {
+				forcedArch := false
+				if forcedOptions.arch != nil && strings.Contains(assetName, *forcedOptions.arch) {
+					forcedArch = true
 					if verbose {
-						verbosePrintf("  - Ignoring Asset due to not matching architecture %s\n", archName)
+						verbosePrintf("    - Forcing Asset match due to forced architecture %s\n", *forcedOptions.arch)
 					}
-					continue
 				}
-				for _, undesired := range archList.undesired {
-					for _, undesiredArch := range *undesired {
-						if undesiredArch == "" {
-							continue
+				if !forcedArch {
+					if !strings.Contains(assetName, archName) {
+						if verbose {
+							verbosePrintf("    - Ignoring Asset due to not matching architecture %s\n", archName)
 						}
-						if strings.Contains(assetName, undesiredArch) {
-							if verbose {
-								verbosePrintf("  - Ignoring Asset due to matching undesired architecture %s\n", undesiredArch)
+						continue
+					}
+					for _, undesired := range archList.undesired {
+						for _, undesiredArch := range *undesired {
+							if undesiredArch == "" {
+								continue
 							}
-							continue assetLoop
+							if strings.Contains(assetName, undesiredArch) {
+								if verbose {
+									verbosePrintf("    - Ignoring Asset due to matching undesired architecture %s\n", undesiredArch)
+								}
+								continue assetLoop
+							}
 						}
 					}
 				}
 				for osIdx, os := range osList {
+					if forcedOptions.os != nil && strings.Contains(assetName, *forcedOptions.os) {
+						candidateStrength = 0xFF
+						candidateAsset = &asset
+						if verbose {
+							verbosePrintf("    - Forcing Asset match due to forced os %s\n", *forcedOptions.os)
+						}
+						continue
+					}
 					if !strings.Contains(assetName, os) {
 						if verbose {
-							verbosePrintf("  - Ignoring Asset for not matching OS %s\n", os)
+							verbosePrintf("    - Ignoring Asset for not matching OS %s\n", os)
 						}
 						continue
 					}

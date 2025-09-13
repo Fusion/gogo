@@ -112,6 +112,12 @@ Store your token in the configuration file/directory:
 token = "github_<xxxxxxxxxx>"
 ```
 
+### Updating gogo itself
+
+```
+cp $(which gogo) $HOME/gogo.tmp && $HOME/gogo.tmp fetch Fusion/gogo -update && gogo refresh && rm -f $HOME/gogo.tmp
+```
+
 ### Development
 
 #### Releasing

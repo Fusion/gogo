@@ -9,7 +9,7 @@ $(PLATFORMS):
 package:
 	cp sampleconfig/config.toml . \
 	&& cp templates/config.toml sampleconfig/config.toml \
-	&& tar zcvf config.tgz sampleconfig \
+	&& tar -z -c -v --format ustar -f config.tgz sampleconfig \
 	&& cp config.toml sampleconfig/config.toml
 
 clean:

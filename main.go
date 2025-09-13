@@ -93,7 +93,7 @@ type ForcedOptions struct {
 }
 
 var (
-	VERSION = "0.1.1"
+	VERSION = "0.1.2"
 
 	// This list is sorted from least desirable to most desirable
 	Amd64Arch = []string{"", "amd64", "x86_64", "musl"}
@@ -546,7 +546,7 @@ func doFetch(configPath string, update bool, command *string, forcedOptions Forc
 				verbosePrintf("  Matching Asset: %s\n", assetName)
 			}
 			// following a common convention, we ignore SHA files, signatures, etc.
-			for _, ignore := range []string{".sha", ".sig", ".asc"} {
+			for _, ignore := range []string{".sha", ".sig", ".asc", ".deb", ".rpm", ".apk", ".ipa"} {
 				if strings.Contains(assetName, ignore) {
 					if verbose {
 						verbosePrintf("    - Ignoring Asset due to suffix %s\n", ignore)

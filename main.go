@@ -93,7 +93,7 @@ type ForcedOptions struct {
 }
 
 var (
-	VERSION = "0.0.9"
+	VERSION = "0.1.0"
 
 	// This list is sorted from least desirable to most desirable
 	Amd64Arch = []string{"", "amd64", "x86_64", "musl"}

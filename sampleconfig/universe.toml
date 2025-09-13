@@ -265,4 +265,14 @@ file = "argc"
 comment = "Bash CLI framework"
 tags = ["shell"]
 
+[[repositories]]
+name = "yassinebenaid/bunster"
+file = "bunster"
+comment = "Transpile bash to go"
+tags = ["shell"]
 
+[[repositories]]
+name = "carapace-sh/carapace-bin"
+file = "carapace"
+comment = "Multi shell auto complete"
+tags = ["shell"]

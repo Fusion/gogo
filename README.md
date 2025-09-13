@@ -52,7 +52,7 @@ etc.
 #### Updating a single command:
 
 1. Confirm command name: `gogo list [-config <path-to-configuration>]`
-2. Run: `goto fetch <command-name> [-config <path-to-configuration>] -update`
+2. Run: `gogo fetch <command-name> [-config <path-to-configuration>] -update`
 
 #### Installing missing commands:
 
@@ -80,7 +80,7 @@ Obviously, replace `chris_favs` with the path to your own favorites file.
 
 #### Refreshing all commands:
 
-1. Run `goto fetch [-config <path-to-configuration>] -update`
+1. Run `gogo fetch [-config <path-to-configuration>] -update`
 
 ### Specifying where the commands should go
 
